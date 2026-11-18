@@ -20,6 +20,7 @@ API reference: **https://docs.fancyodds.live** · Website: **https://fancyodds.l
 - [Sandbox limits](#sandbox-limits)
 - [Errors](#errors)
 - [Running each language](#running-each-language)
+- [Postman collection](#postman-collection)
 - [Get an API key](#get-an-api-key)
 
 ## What the feed is
@@ -271,6 +272,16 @@ Or plain curl, no scripts:
 curl -s --compressed -H "X-API-Key: $FANCYODDS_KEY" "https://api-sandbox.fancyodds.live/v1/events?state=inplay"
 curl -N -H "X-API-Key: $FANCYODDS_KEY" "https://api-sandbox.fancyodds.live/v1/stream?events=ev_k9wtucdybikxygkh"
 ```
+
+## Postman collection
+
+[`postman/fancyodds.postman_collection.json`](postman/fancyodds.postman_collection.json) has every endpoint, ready to send:
+
+1. In Postman, choose **Import** and pick the file.
+2. Open the collection's **Variables** and put your key in `apiKey` (in *Current value*, so it is never shared).
+3. Send the requests in order. *In-play events* saves an `eventId`, *One event* saves a `marketId`, and the odds and results calls save their tokens, so each next request just works.
+
+Your key works only from the IP addresses on its allowlist, so send from the **Postman desktop app** on an allowed machine: requests sent through Postman's cloud come from Postman's servers and are refused. *Live stream (SSE)* shows each message as it arrives; stop it to close the stream.
 
 ## Get an API key
 

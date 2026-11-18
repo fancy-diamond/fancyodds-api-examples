@@ -1,0 +1,454 @@
+{
+  "info": {
+    "name": "Fancy Odds API",
+    "description": "Requests for the Fancy Odds API: sports, events, live odds, the SSE stream, changes and results.\n\n**Set up**\n1. Ask for a sandbox key at https://fancyodds.live (or on Telegram).\n2. Put it in the collection variable `apiKey` (Current value only, so it is never shared).\n3. Your key works only from IP addresses on its allowlist. Send requests from the **Postman desktop app** (or the Desktop Agent) on a machine whose public IP is on your allowlist: requests sent through Postman's cloud come from Postman's servers and are refused.\n4. Run the folders in order. *In-play events* saves an `eventId`, *One event* saves a `marketId`, and the odds and results calls save their tokens, so the next requests just work.\n\nSandbox: real markets with prices 60 seconds old, up to 5 events per stream, 1 stream, 2 requests a second. Live keys use `https://api.fancyodds.live`.\n\nFull reference: https://docs.fancyodds.live \u00b7 Code examples in Node, Python, PHP and curl: https://github.com/fancy-diamond/fancyodds-api-examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api-sandbox.fancyodds.live"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "sport",
+      "value": "cricket"
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "marketId",
+      "value": ""
+    },
+    {
+      "key": "changesToken",
+      "value": ""
+    },
+    {
+      "key": "resultsSince",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Start here",
+      "item": [
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ]
+            },
+            "description": "Your client name, sports and limits. The first call to check that your key and IP allowlist work. [Reference](https://docs.fancyodds.live/#me)"
+          }
+        },
+        {
+          "name": "Sports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sports"
+              ]
+            },
+            "description": "The sports your key receives. Sport ids are slugs, e.g. `cricket`, `soccer`, `tennis`. [Reference](https://docs.fancyodds.live/#sports)"
+          }
+        },
+        {
+          "name": "Competitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/competitions?sport={{sport}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "sport",
+                  "value": "{{sport}}",
+                  "description": "Optional. One of your sports."
+                }
+              ]
+            },
+            "description": "Competitions in one sport. [Reference](https://docs.fancyodds.live/#competitions)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Events and odds",
+      "item": [
+        {
+          "name": "In-play events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/events?sport={{sport}}&state=inplay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "sport",
+                  "value": "{{sport}}",
+                  "description": "Optional. cricket, soccer, \u2026"
+                },
+                {
+                  "key": "state",
+                  "value": "inplay",
+                  "description": "Optional. inplay or upcoming"
+                }
+              ]
+            },
+            "description": "Events now in play. Saves the first event id as `eventId` for the next requests. [Reference](https://docs.fancyodds.live/#events)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "const list = Array.isArray(b) ? b : (b.events || []);",
+                  "if (list.length) { pm.collectionVariables.set('eventId', list[0].id); console.log('eventId =', list[0].id, list[0].name); }",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "One event, in full",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Every market and price of one event. Saves the first market id as `marketId`. Send the ETag back as If-None-Match to get 304 while nothing changed. [Reference](https://docs.fancyodds.live/#event)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = pm.response.json();",
+                  "if (e.markets && e.markets.length) pm.collectionVariables.set('marketId', e.markets[0].id);",
+                  "const t = pm.response.headers.get('X-Resume-Token'); if (t) pm.collectionVariables.set('changesToken', t);",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Odds for several events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/odds?events={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "odds"
+              ],
+              "query": [
+                {
+                  "key": "events",
+                  "value": "{{eventId}}",
+                  "description": "Comma-separated ev_\u2026 ids"
+                }
+              ]
+            },
+            "description": "Up to 50 events in one call; `next` is the token for /v1/changes. Saves it as `changesToken`. [Reference](https://docs.fancyodds.live/#odds)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json(); if (b.next) pm.collectionVariables.set('changesToken', b.next);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Changes since a token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/changes?since={{changesToken}}&events={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "{{changesToken}}",
+                  "description": "The next token from /v1/odds, /v1/changes or X-Resume-Token"
+                },
+                {
+                  "key": "events",
+                  "value": "{{eventId}}",
+                  "description": "Comma-separated ev_\u2026 ids"
+                }
+              ]
+            },
+            "description": "For pollers: the latest state of each market that changed since your token, and a new `next`. Call every second or two. 410 resync means take a fresh snapshot. [Reference](https://docs.fancyodds.live/#changes)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { const b = pm.response.json(); if (b.next) pm.collectionVariables.set('changesToken', b.next); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Live stream (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/stream?events={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "events",
+                  "value": "{{eventId}}",
+                  "description": "Comma-separated ev_\u2026 ids (sandbox: up to 5)"
+                }
+              ]
+            },
+            "description": "One connection, everything that moves: each event in full once, then only changes. A sandbox key may follow up to 5 events, listed by id, on 1 stream; `events=all` answers 400 on a sandbox key. Postman shows the messages as they arrive; stop the request to close it. [Reference](https://docs.fancyodds.live/#stream)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Results",
+      "item": [
+        {
+          "name": "Results feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/results?since={{resultsSince}}&limit=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "results"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "{{resultsSince}}",
+                  "description": "The next from your previous call; 0 for everything kept"
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Up to 1000 per page"
+                }
+              ]
+            },
+            "description": "Every result in order (SETTLED, CORRECTED, VOIDED, UNSETTLED). Keep `next` and pass it as `since` next time. [Reference](https://docs.fancyodds.live/#results-list)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json(); if (b.next !== undefined) pm.collectionVariables.set('resultsSince', String(b.next));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Result of one market",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/markets/{{marketId}}/result",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "markets",
+                "{{marketId}}",
+                "result"
+              ]
+            },
+            "description": "The current result of one market. [Reference](https://docs.fancyodds.live/#market-result)"
+          }
+        },
+        {
+          "name": "Results of one event",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/events/{{eventId}}/results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "events",
+                "{{eventId}}",
+                "results"
+              ]
+            },
+            "description": "Every market of one event: settled ones first, then open ones as PENDING. [Reference](https://docs.fancyodds.live/#event-results)"
+          }
+        }
+      ]
+    }
+  ]
+}
