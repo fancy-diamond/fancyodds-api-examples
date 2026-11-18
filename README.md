@@ -20,6 +20,7 @@ API reference: **https://docs.fancyodds.live** · Website: **https://fancyodds.l
 - [Sandbox limits](#sandbox-limits)
 - [Errors](#errors)
 - [Running each language](#running-each-language)
+- [OpenAPI spec](#openapi-spec)
 - [Postman collection](#postman-collection)
 - [Get an API key](#get-an-api-key)
 
@@ -272,6 +273,10 @@ Or plain curl, no scripts:
 curl -s --compressed -H "X-API-Key: $FANCYODDS_KEY" "https://api-sandbox.fancyodds.live/v1/events?state=inplay"
 curl -N -H "X-API-Key: $FANCYODDS_KEY" "https://api-sandbox.fancyodds.live/v1/stream?events=ev_k9wtucdybikxygkh"
 ```
+
+## OpenAPI spec
+
+[`openapi.json`](openapi.json) describes every endpoint, parameter and response as OpenAPI 3.1. The same file is served at https://docs.fancyodds.live/openapi.json. Use it to generate a client, import it into an API tool, or hand it to a coding assistant.
 
 ## Postman collection
 

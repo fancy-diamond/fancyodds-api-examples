@@ -1,0 +1,1277 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Fancy Odds API",
+  "version": "1.0.0",
+  "description": "Cricket odds API: session fancy, Khado, bookmaker and match odds, with a live SSE stream, REST snapshots and a changes feed, and automatic results. Keys work only from the IP addresses on their allowlist and are meant for server-to-server use. Full reference: https://docs.fancyodds.live/ · Sandbox key: https://fancyodds.live/#contact",
+  "contact": {
+   "name": "Fancy Odds API",
+   "url": "https://fancyodds.live/",
+   "email": "api@fancyodds.live"
+  }
+ },
+ "externalDocs": {
+  "description": "API reference",
+  "url": "https://docs.fancyodds.live/"
+ },
+ "servers": [
+  {
+   "url": "https://api-sandbox.fancyodds.live",
+   "description": "Sandbox: prices 60 s old, 5 events per stream, 1 stream, 2 requests/s"
+  },
+  {
+   "url": "https://api.fancyodds.live",
+   "description": "Live"
+  }
+ ],
+ "security": [
+  {
+   "apiKey": []
+  }
+ ],
+ "tags": [
+  {
+   "name": "Account"
+  },
+  {
+   "name": "Catalogue"
+  },
+  {
+   "name": "Odds"
+  },
+  {
+   "name": "Results"
+  }
+ ],
+ "paths": {
+  "/v1/me": {
+   "get": {
+    "operationId": "getMe",
+    "summary": "Who you are, your sports and your limits",
+    "tags": [
+     "Account"
+    ],
+    "responses": {
+     "200": {
+      "description": "Your account",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "client": {
+           "type": "string"
+          },
+          "sports": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "limits": {
+           "type": "object",
+           "properties": {
+            "maxStreams": {
+             "type": "integer"
+            },
+            "minPollMs": {
+             "type": "integer"
+            },
+            "maxEventsPerStream": {
+             "type": "integer"
+            },
+            "delayMs": {
+             "type": "integer"
+            },
+            "ratePerSec": {
+             "type": "integer"
+            }
+           },
+           "description": "0 means no limit or no delay"
+          },
+          "serverTime": {
+           "type": "string",
+           "format": "date-time"
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/sports": {
+   "get": {
+    "operationId": "listSports",
+    "summary": "Your sports, with event counts",
+    "tags": [
+     "Catalogue"
+    ],
+    "responses": {
+     "200": {
+      "description": "Sports",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "sports": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sport": {
+              "type": "string"
+             },
+             "events": {
+              "type": "integer"
+             },
+             "inplay": {
+              "type": "integer"
+             },
+             "upcoming": {
+              "type": "integer"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/competitions": {
+   "get": {
+    "operationId": "listCompetitions",
+    "summary": "Competitions with events now",
+    "tags": [
+     "Catalogue"
+    ],
+    "parameters": [
+     {
+      "name": "sport",
+      "in": "query",
+      "required": false,
+      "description": "One of your sports",
+      "schema": {
+       "type": "string"
+      },
+      "example": "cricket"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Competitions",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "competitions": {
+           "type": "array",
+           "items": {
+            "allOf": [
+             {
+              "$ref": "#/components/schemas/Competition"
+             },
+             {
+              "type": "object",
+              "properties": {
+               "sport": {
+                "type": "string"
+               },
+               "events": {
+                "type": "integer"
+               }
+              }
+             }
+            ]
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/events": {
+   "get": {
+    "operationId": "listEvents",
+    "summary": "Every event you receive, without prices",
+    "tags": [
+     "Catalogue"
+    ],
+    "parameters": [
+     {
+      "name": "sport",
+      "in": "query",
+      "required": false,
+      "description": "cricket, soccer, …",
+      "schema": {
+       "type": "string"
+      },
+      "example": "cricket"
+     },
+     {
+      "name": "state",
+      "in": "query",
+      "required": false,
+      "description": "inplay or upcoming",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "inplay",
+        "upcoming"
+       ]
+      }
+     },
+     {
+      "name": "competition",
+      "in": "query",
+      "required": false,
+      "description": "A cp_… id",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Events",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "events": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/EventSummary"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/events/{id}": {
+   "get": {
+    "operationId": "getEvent",
+    "summary": "One event with every market and price",
+    "tags": [
+     "Odds"
+    ],
+    "description": "Send the ETag back as If-None-Match to get 304 while nothing changed.",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "example": "ev_k9wtucdybikxygkh"
+     },
+     {
+      "name": "If-None-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The event",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Event"
+        }
+       }
+      },
+      "headers": {
+       "ETag": {
+        "schema": {
+         "type": "string"
+        }
+       },
+       "X-Resume-Token": {
+        "schema": {
+         "type": "string"
+        },
+        "description": "since token for /v1/changes"
+       }
+      }
+     },
+     "304": {
+      "description": "Not modified"
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    }
+   }
+  },
+  "/v1/odds": {
+   "get": {
+    "operationId": "getOdds",
+    "summary": "Odds for up to 50 events in one call",
+    "tags": [
+     "Odds"
+    ],
+    "parameters": [
+     {
+      "name": "events",
+      "in": "query",
+      "required": true,
+      "description": "Comma-separated ev_… ids, up to 50",
+      "schema": {
+       "type": "string"
+      },
+      "example": "ev_k9wtucdybikxygkh"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Events in the order asked",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "events": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Event"
+           }
+          },
+          "missing": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "next": {
+           "type": "string",
+           "description": "since token for /v1/changes"
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/stream": {
+   "get": {
+    "operationId": "streamOdds",
+    "summary": "Live stream (Server-Sent Events)",
+    "tags": [
+     "Odds"
+    ],
+    "description": "Messages: snapshot, ready, market-update, market-remove, event-update, event-remove, result, reconnect, error; a `: heartbeat` comment every 15 s. Resume with the last message id in Last-Event-ID (or ?lastEventId=). Full message reference: https://docs.fancyodds.live/#stream",
+    "parameters": [
+     {
+      "name": "events",
+      "in": "query",
+      "required": false,
+      "description": "Comma-separated ev_… ids. A key with an events-per-stream limit (every sandbox key: 5) must list ids; `all` (the default when left out) needs a key with no limit (`maxEventsPerStream` 0).",
+      "schema": {
+       "type": "string"
+      },
+      "example": "ev_k9wtucdybikxygkh,ev_zizcp33rpuucwacg"
+     },
+     {
+      "name": "Last-Event-ID",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "The last id received, to resume"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "An event stream",
+      "content": {
+       "text/event-stream": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     }
+    }
+   }
+  },
+  "/v1/changes": {
+   "get": {
+    "operationId": "getChanges",
+    "summary": "What a stream would have sent since your token (for pollers)",
+    "tags": [
+     "Odds"
+    ],
+    "description": "Without since: only a starting token. With since: the latest state of each market that changed, and a new next.",
+    "parameters": [
+     {
+      "name": "since",
+      "in": "query",
+      "required": false,
+      "description": "The next token from /v1/odds, /v1/changes or X-Resume-Token",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "events",
+      "in": "query",
+      "required": false,
+      "description": "Comma-separated ev_… ids. A key with an events-per-stream limit (every sandbox key: 5) must list ids; `all` (the default when left out) needs a key with no limit (`maxEventsPerStream` 0).",
+      "schema": {
+       "type": "string"
+      },
+      "example": "ev_k9wtucdybikxygkh,ev_zizcp33rpuucwacg"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Changes",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "changes": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Change"
+           }
+          },
+          "next": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     },
+     "410": {
+      "$ref": "#/components/responses/Resync"
+     }
+    }
+   }
+  },
+  "/v1/results": {
+   "get": {
+    "operationId": "listResults",
+    "summary": "Every result entry, in order",
+    "tags": [
+     "Results"
+    ],
+    "parameters": [
+     {
+      "name": "since",
+      "in": "query",
+      "required": false,
+      "description": "The next from your previous call; 0 for everything kept",
+      "schema": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "example": 0
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "description": "Up to 1000 per page; default 500",
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 1000
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Results",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "results": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/ResultEntry"
+           }
+          },
+          "next": {
+           "type": "integer"
+          },
+          "more": {
+           "type": "boolean"
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     },
+     "410": {
+      "$ref": "#/components/responses/Resync"
+     }
+    }
+   }
+  },
+  "/v1/markets/{id}/result": {
+   "get": {
+    "operationId": "getMarketResult",
+    "summary": "The current result of one market",
+    "tags": [
+     "Results"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "example": "mk_r4nd8w2qk6t3pyvh"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The result",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MarketResult"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    }
+   }
+  },
+  "/v1/events/{id}/results": {
+   "get": {
+    "operationId": "getEventResults",
+    "summary": "Every market of one event, settled or pending",
+    "tags": [
+     "Results"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "example": "ev_k9wtucdybikxygkh"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Results of the event",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "event": {
+           "type": "string",
+           "description": "the event id"
+          },
+          "markets": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/MarketResult"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "429": {
+      "$ref": "#/components/responses/TooMany"
+     },
+     "503": {
+      "$ref": "#/components/responses/Unavailable"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "securitySchemes": {
+   "apiKey": {
+    "type": "apiKey",
+    "in": "header",
+    "name": "X-API-Key",
+    "description": "fg_test_… (sandbox) or fg_live_… (live)"
+   }
+  },
+  "schemas": {
+   "Cell": {
+    "type": "object",
+    "required": [
+     "price",
+     "size"
+    ],
+    "properties": {
+     "price": {
+      "type": "number",
+      "description": "decimal: odds; rate: profit per 100; line/range: the line (range: first winning score)"
+     },
+     "size": {
+      "type": "number",
+      "description": "decimal: amount available; rate: depth; line/range: the rate (profit per 100)"
+     },
+     "width": {
+      "type": "integer",
+      "description": "range markets only: how many scores win, from price to price + width − 1"
+     }
+    }
+   },
+   "Runner": {
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "back",
+     "lay"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "example": "rn_svsqaaiuqdfnetsf"
+     },
+     "name": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string",
+      "example": "OPEN"
+     },
+     "back": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Cell"
+      },
+      "description": "Best price first. On line/range markets: Yes."
+     },
+     "lay": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Cell"
+      },
+      "description": "Best price first. On line markets: No. Empty on range markets."
+     }
+    }
+   },
+   "Market": {
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type",
+     "format",
+     "status",
+     "runners"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "example": "mk_vf86825bva46g3qq"
+     },
+     "name": {
+      "type": "string",
+      "example": "Match Odds"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "match_odds",
+       "bookmaker",
+       "fancy"
+      ]
+     },
+     "format": {
+      "type": "string",
+      "enum": [
+       "decimal",
+       "rate",
+       "line",
+       "range"
+      ],
+      "description": "How to read price and size: always check it first."
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "OPEN",
+       "SUSPENDED",
+       "BALL_RUNNING",
+       "CLOSED"
+      ],
+      "description": "Take bets only on OPEN."
+     },
+     "inplay": {
+      "type": "boolean"
+     },
+     "updatedAt": {
+      "type": "integer",
+      "description": "epoch milliseconds"
+     },
+     "stale": {
+      "type": "boolean",
+      "description": "Present and true when prices stopped arriving; treat as SUSPENDED."
+     },
+     "runners": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Runner"
+      }
+     }
+    }
+   },
+   "Competition": {
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "example": "cp_uumfx68hmdwne54u"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "EventSummary": {
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "sport",
+     "competition",
+     "state",
+     "inplay"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "example": "ev_k9wtucdybikxygkh"
+     },
+     "name": {
+      "type": "string",
+      "example": "Pakistan v Sri Lanka"
+     },
+     "sport": {
+      "type": "string",
+      "example": "cricket"
+     },
+     "competition": {
+      "$ref": "#/components/schemas/Competition"
+     },
+     "start": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "format": "date-time"
+     },
+     "state": {
+      "type": "string",
+      "enum": [
+       "upcoming",
+       "inplay"
+      ]
+     },
+     "inplay": {
+      "type": "boolean"
+     },
+     "updatedAt": {
+      "type": "integer",
+      "description": "epoch milliseconds"
+     },
+     "marketCount": {
+      "type": "integer"
+     }
+    }
+   },
+   "Event": {
+    "allOf": [
+     {
+      "$ref": "#/components/schemas/EventSummary"
+     },
+     {
+      "type": "object",
+      "properties": {
+       "markets": {
+        "type": "array",
+        "items": {
+         "$ref": "#/components/schemas/Market"
+        }
+       }
+      }
+     }
+    ]
+   },
+   "Ref": {
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "ResultEvent": {
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "start": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
+   },
+   "ResultMarket": {
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     }
+    }
+   },
+   "ResultEntry": {
+    "type": "object",
+    "required": [
+     "seq",
+     "action",
+     "sport",
+     "event",
+     "market",
+     "at"
+    ],
+    "properties": {
+     "seq": {
+      "type": "integer",
+      "description": "Order of the entry; the highest per market is current."
+     },
+     "action": {
+      "type": "string",
+      "enum": [
+       "SETTLED",
+       "CORRECTED",
+       "VOIDED",
+       "UNSETTLED"
+      ]
+     },
+     "sport": {
+      "type": "string"
+     },
+     "event": {
+      "$ref": "#/components/schemas/ResultEvent"
+     },
+     "market": {
+      "$ref": "#/components/schemas/ResultMarket"
+     },
+     "winner": {
+      "$ref": "#/components/schemas/Ref"
+     },
+     "result": {
+      "type": "number",
+      "description": "line and range markets"
+     },
+     "settledAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
+   },
+   "MarketResult": {
+    "type": "object",
+    "required": [
+     "market",
+     "event",
+     "status",
+     "corrected"
+    ],
+    "properties": {
+     "market": {
+      "$ref": "#/components/schemas/ResultMarket"
+     },
+     "event": {
+      "$ref": "#/components/schemas/ResultEvent"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "SETTLED",
+       "VOIDED",
+       "PENDING"
+      ]
+     },
+     "winner": {
+      "$ref": "#/components/schemas/Ref"
+     },
+     "result": {
+      "type": "number"
+     },
+     "settledAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "seq": {
+      "type": "integer",
+      "description": "absent while there has been no result"
+     },
+     "corrected": {
+      "type": "boolean"
+     }
+    }
+   },
+   "Change": {
+    "type": "object",
+    "required": [
+     "type",
+     "data"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "enum": [
+       "snapshot",
+       "market-update",
+       "market-remove",
+       "event-update",
+       "event-remove",
+       "result"
+      ]
+     },
+     "data": {
+      "type": "object",
+      "description": "As the stream message of the same name."
+     }
+    }
+   },
+   "Error": {
+    "type": "object",
+    "required": [
+     "code",
+     "message"
+    ],
+    "properties": {
+     "code": {
+      "type": "string",
+      "enum": [
+       "bad_request",
+       "unauthorized",
+       "forbidden",
+       "not_found",
+       "resync",
+       "rate_limited",
+       "too_many_streams",
+       "quota_exceeded",
+       "starting",
+       "maintenance",
+       "unavailable"
+      ]
+     },
+     "message": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "responses": {
+   "BadRequest": {
+    "description": "A parameter is wrong; the message says which.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "Unauthorized": {
+    "description": "No key, or a key we do not know.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "Forbidden": {
+    "description": "IP not on the key's allowlist, key for the other environment, or account suspended.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "NotFound": {
+    "description": "No such id, or not one of yours.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "Resync": {
+    "description": "The token is too old to continue: take a fresh snapshot.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "TooMany": {
+    "description": "rate_limited (wait for Retry-After), too_many_streams or quota_exceeded.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   },
+   "Unavailable": {
+    "description": "starting (retry in a few seconds) or maintenance.",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   }
+  }
+ }
+}
